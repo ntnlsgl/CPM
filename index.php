@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPM - Content Plan Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-calendar-days text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Content Plan Management (CPM)</h1>
+                    <p class="text-xs text-slate-500">Sistem Perencanaan & Penjadwalan Konten Kreatif</p>
+                </div>
+            </div>
+            <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Buat Konten Baru
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Konten</p>
+                <h3 id="total-content" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Platform Terbanyak</p>
+                <h3 id="top-platform" class="text-2xl font-bold text-indigo-600 mt-1">-</h3>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Status Database</p>
+                <h3 id="db-status" class="text-2xl font-bold text-amber-500 mt-1">Menghubungkan...</h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="font-bold text-slate-800 text-base">Daftar Rencana Konten</h2>
+                <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-medium">Real-time Cloud DB</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
+                            <th class="p-4 font-semibold">Platform & Waktu</th>
+                            <th class="p-4 font-semibold">Target & Persona</th>
+                            <th class="p-4 font-semibold">Funnel & Hook</th>
+                            <th class="p-4 font-semibold">Angle & Offer</th>
+                            <th class="p-4 font-semibold">USP & CTA</th>
+                            <th class="p-4 font-semibold text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="content-table-body" class="divide-y divide-slate-100 text-sm">
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-slate-400">Memuat data dari database...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="content-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-slate-100">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 id="modal-title" class="font-bold text-lg text-slate-900">Tambah Konten Baru</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="content-form" onsubmit="saveContent(event)" class="p-6 space-y-4">
+                <input type="hidden" id="content-id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Platform</label>
+                        <select id="platform" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Tiktok">Tiktok</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="Youtube">Youtube</option>
+                            <option value="Thread">Thread</option>
+                            <option value="X">X (Twitter)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Waktu Upload</label>
+                        <select id="upload-time" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="07.30 (Breakfast)">07.30 (Breakfast)</option>
+                            <option value="12.30 (Lunch)">12.30 (Lunch)</option>
+                            <option value="18.30 (Dinner)">18.30 (Dinner)</option>
+                            <option value="21.00 (Tea Time)">21.00 (Tea Time)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Segment (Waktu)</label>
+                        <select id="segment" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Pagi">Pagi</option>
+                            <option value="Siang">Siang</option>
+                            <option value="Sore">Sore</option>
+                            <option value="Malam">Malam</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Consumer Intent</label>
+                        <select id="consumer-intent" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Makan">Makan</option>
+                            <option value="Nongkrong">Nongkrong</option>
+                            <option value="Date">Date</option>
+                            <option value="Meeting">Meeting</option>
+                            <option value="Foto">Foto</option>
+                            <option value="Sunset">Sunset</option>
+                            <option value="Family Time">Family Time</option>
+                            <option value="Event">Event</option>
+                            <option value="New Experience">New Experience</option>
+                            <option value="Promo">Promo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Funnel Strategy</label>
+                        <select id="funnel" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Pendek & Cepat">Pendek & Cepat (Langsung ke aksi)</option>
+                            <option value="Sedang">Sedang (Ada pertimbangan)</option>
+                            <option value="Lebih Panjang">Lebih Panjang (Keputusan bersama)</option>
+                            <option value="Paling Panjang">Paling Panjang (Grup/Keluarga)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Audience Persona</label>
+                        <select id="persona" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Mahasiswa (Individu)">Mahasiswa (Individu)</option>
+                            <option value="Pekerja (Individu)">Pekerja (Individu)</option>
+                            <option value="Freelancer (Individu)">Freelancer (Individu)</option>
+                            <option value="First Date (Couple)">First Date (Couple)</option>
+                            <option value="Young Couple">Young Couple</option>
+                            <option value="Old Couple / Anniversary">Old Couple / Anniversary</option>
+                            <option value="Teman Kerja / Sekolah (Group)">Teman Kerja / Sekolah (Group)</option>
+                            <option value="Big/Young Family">Big / Young Family</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Hook</label>
+                        <select id="hook" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Curiosity">Curiosity</option>
+                            <option value="FOMO">FOMO</option>
+                            <option value="Emotional">Emotional</option>
+                            <option value="Relatable">Relatable</option>
+                            <option value="Surprise">Surprise</option>
+                            <option value="Social Proof">Social Proof</option>
+                            <option value="Problem-Solution">Problem-Solution</option>
+                            <option value="Aspiration">Aspiration</option>
+                            <option value="Humor & Scarcity">Humor & Scarcity</option>
+                            <option value="Nostalgia">Nostalgia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Content Angle</label>
+                        <select id="content-angle" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="POV">POV</option>
+                            <option value="Before -> After">Before -> After</option>
+                            <option value="Behind the Scene">Behind the Scene</option>
+                            <option value="Customer Experience">Customer Experience</option>
+                            <option value="Staff Story">Staff Story</option>
+                            <option value="Product Highlight">Product Highlight</option>
+                            <option value="Location Reveal">Location Reveal</option>
+                            <option value="Comparison & Listicle">Comparison & Listicle</option>
+                            <option value="Storytelling & Testimonial">Storytelling & Testimonial</option>
+                            <option value="Cinematic / Educational / Comedy">Cinematic / Educational / Comedy</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Offer</label>
+                        <select id="offer" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Tidak ada promo">Tidak ada promo</option>
+                            <option value="Promo menu">Promo menu</option>
+                            <option value="Paket couple">Paket couple</option>
+                            <option value="Paket family">Paket family</option>
+                            <option value="Paket gathering">Paket gathering</option>
+                            <option value="Live music / Event">Live music / Event</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">USP / Selling Point</label>
+                        <select id="usp" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="View Waduk">View Waduk</option>
+                            <option value="Sunset">Sunset</option>
+                            <option value="Area Outdoor">Area Outdoor</option>
+                            <option value="Coffee / Food">Coffee / Food</option>
+                            <option value="Speedboat">Speedboat</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">CTA</label>
+                        <select id="cta" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Datang Sekarang">Datang Sekarang</option>
+                            <option value="Save">Save</option>
+                            <option value="Share">Share</option>
+                            <option value="Comment">Comment</option>
+                            <option value="Follow">Follow</option>
+                            <option value="DM / Reservasi">DM / Reservasi</option>
+                            <option value="Tag Pasangan / Teman">Tag Pasangan / Teman</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition shadow-sm">Simpan Konten</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, remove, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // ==========================================
+        // GANTI DENGAN KONFIGURASI FIREBASE ANDA
+        // ==========================================
+        const firebaseConfig = {
+    apiKey: "AIzaSyAJAYw5365WmC1j4wzHs2vhDRNQRQopFWw",
+    authDomain: "content-management-plan.firebaseapp.com",
+    databaseURL: "https://content-management-plan-default-rtdb.firebaseio.com",
+    projectId: "content-management-plan",
+    storageBucket: "content-management-plan.firebasestorage.app",
+    messagingSenderId: "63622762698",
+    appId: "1:63622762698:web:773be35f5b46aefaa9a433",
+    measurementId: "G-V7QEY5YG85"
+  };
+
+        // Inisialisasi Firebase
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            document.getElementById('db-status').innerText = 'Connected';
+            document.getElementById('db-status').className = 'text-2xl font-bold text-emerald-500 mt-1';
+        } catch (error) {
+            console.error("Firebase Init Error:", error);
+            document.getElementById('db-status').innerText = 'Error Config';
+            document.getElementById('db-status').className = 'text-2xl font-bold text-rose-500 mt-1';
+        }
+
+        // Ambil Data Real-time
+        const dbRef = ref(db, 'contents');
+        onValue(dbRef, (snapshot) => {
+            const dataTable = document.getElementById('content-table-body');
+            dataTable.innerHTML = '';
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                let total = 0;
+                let platforms = {};
+
+                Object.keys(data).forEach(key => {
+                    const item = data[key];
+                    total++;
+                    platforms[item.platform] = (platforms[item.platform] || 0) + 1;
+
+                    let row = `
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-4">
+                                <span class="font-semibold text-slate-900 block">${item.platform}</span>
+                                <span class="text-xs text-indigo-600 font-medium">${item.uploadTime}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700">${item.segment}</span>
+                                <span class="text-xs text-slate-400">${item.persona}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700 font-medium">${item.funnel}</span>
+                                <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md inline-block mt-1">${item.hook}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700">${item.contentAngle}</span>
+                                <span class="text-xs text-slate-500 italic">${item.offer}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700 font-medium">${item.usp}</span>
+                                <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md inline-block mt-1">${item.cta}</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button onclick="editData('${key}', '${item.platform}', '${item.uploadTime}', '${item.segment}', '${item.consumerIntent}', '${item.funnel}', '${item.persona}', '${item.hook}', '${item.contentAngle}', '${item.offer}', '${item.usp}', '${item.cta}')" class="p-2 text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button onclick="deleteData('${key}')" class="p-2 text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    dataTable.innerHTML += row;
+                });
+
+                document.getElementById('total-content').innerText = total;
+                
+                // Cari platform terbanyak
+                let topPlatform = Object.keys(platforms).reduce((a, b) => platforms[a] > platforms[b] ? a : b, '-');
+                document.getElementById('top-platform').innerText = topPlatform;
+
+            } else {
+                dataTable.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Belum ada data konten. Silakan buat baru.</td></tr>`;
+                document.getElementById('total-content').innerText = 0;
+                document.getElementById('top-platform').innerText = '-';
+            }
+        });
+
+        // Simpan / Tambah / Update Data (Create & Update)
+        window.saveContent = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('content-id').value || 'content_' + Date.now();
+            
+            const payload = {
+                platform: document.getElementById('platform').value,
+                uploadTime: document.getElementById('upload-time').value,
+                segment: document.getElementById('segment').value,
+                consumerIntent: document.getElementById('consumer-intent').value,
+                funnel: document.getElementById('funnel').value,
+                persona: document.getElementById('persona').value,
+                hook: document.getElementById('hook').value,
+                contentAngle: document.getElementById('content-angle').value,
+                offer: document.getElementById('offer').value,
+                usp: document.getElementById('usp').value,
+                cta: document.getElementById('cta').value
+            };
+
+            set(ref(db, 'contents/' + id), payload)
+                .then(() => {
+                    closeModal();
+                })
+                .catch((error) => {
+                    alert("Gagal menyimpan: " + error.message);
+                });
+        }
+
+        // Hapus Data (Delete)
+        window.deleteData = function(id) {
+            if(confirm("Apakah Anda yakin ingin menghapus konten ini?")) {
+                remove(ref(db, 'contents/' + id)).catch((error) => {
+                    alert("Gagal menghapus: " + error.message);
+                });
+            }
+        }
+
+        // Edit Data (Populate Form)
+        window.editData = function(id, platform, uploadTime, segment, consumerIntent, funnel, persona, hook, contentAngle, offer, usp, cta) {
+            document.getElementById('content-id').value = id;
+            document.getElementById('platform').value = platform;
+            document.getElementById('upload-time').value = uploadTime;
+            document.getElementById('segment').value = segment;
+            document.getElementById('consumer-intent').value = consumerIntent;
+            document.getElementById('funnel').value = funnel;
+            document.getElementById('persona').value = persona;
+            document.getElementById('hook').value = hook;
+            document.getElementById('content-angle').value = contentAngle;
+            document.getElementById('offer').value = offer;
+            document.getElementById('usp').value = usp;
+            document.getElementById('cta').value = cta;
+
+            document.getElementById('modal-title').innerText = "Edit Konten Plan";
+            openModal();
+        }
+    </script>
+
+    <script>
+        function openModal() {
+            document.getElementById('content-modal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('content-modal').classList.add('hidden');
+            document.getElementById('content-form').reset();
+            document.getElementById('content-id').value = '';
+            document.getElementById('modal-title').innerText = "Tambah Konten Baru";
+        }
+    </script>
+</body>
+</html>
