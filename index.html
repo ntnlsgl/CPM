@@ -420,15 +420,16 @@
         </div>
     </div>
 
-    <!-- Firebase Script SDK (Modular v10) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
-        // ==========================================
-        // GANTI DENGAN KONFIGURASI FIREBASE ANDA
-        // ==========================================
-        const firebaseConfig = {
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
     apiKey: "AIzaSyAJAYw5365WmC1j4wzHs2vhDRNQRQopFWw",
     authDomain: "content-management-plan.firebaseapp.com",
     databaseURL: "https://content-management-plan-default-rtdb.firebaseio.com",
@@ -437,6 +438,7 @@
     messagingSenderId: "63622762698",
     appId: "1:63622762698:web:773be35f5b46aefaa9a433",
     measurementId: "G-V7QEY5YG85"
+  };
 
         let db;
         let currentBrand = 'Nocasta';
