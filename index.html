@@ -420,285 +420,163 @@
         </div>
     </div>
 
-    <!-- Firebase Script SDK (Modular v10) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    // 1. Import Firebase dan modul Realtime Database yang dibutuhkan
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
-        // ==========================================
-        // GANTI DENGAN KONFIGURASI FIREBASE ANDA
-        // ==========================================
-        const firebaseConfig = {
-            apiKey: "MASUKKAN_API_KEY_ANDA",
-            authDomain: "MASUKKAN_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://MASUKKAN_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "MASUKKAN_PROJECT_ID",
-            storageBucket: "MASUKKAN_PROJECT_ID.appspot.com",
-            messagingSenderId: "MASUKKAN_SENDER_ID",
-            appId: "MASUKKAN_APP_ID"
+    // Konfigurasi Firebase dari proyek kamu
+    const firebaseConfig = {
+        apiKey: "AIzaSyAJAYw5365WmC1j4wzHs2vhDRNQRQopFWw",
+        authDomain: "content-management-plan.firebaseapp.com",
+        databaseURL: "https://content-management-plan-default-rtdb.firebaseio.com",
+        projectId: "content-management-plan",
+        storageBucket: "content-management-plan.firebasestorage.app",
+        messagingSenderId: "63622762698",
+        appId: "1:63622762698:web:773be35f5b46aefaa9a433",
+        measurementId: "G-V7QEY5YG85"
+    };
+
+    // 2. Inisialisasi Firebase & Analytics
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+
+    // 3. Inisialisasi Realtime Database dengan menyertakan databaseURL secara eksplisit
+    let db;
+    try {
+        db = getDatabase(app, "https://content-management-plan-default-rtdb.firebaseio.com");
+        document.getElementById('db-status').innerText = 'Connected';
+        document.getElementById('db-status').className = 'text-2xl font-bold text-emerald-500 mt-1';
+    } catch (error) {
+        console.error("Firebase Init Error:", error);
+        document.getElementById('db-status').innerText = 'Error Config';
+        document.getElementById('db-status').className = 'text-2xl font-bold text-rose-500 mt-1';
+    }
+
+    // 4. Ambil Data Real-time dari path 'contents'
+    const dbRef = ref(db, 'contents');
+    onValue(dbRef, (snapshot) => {
+        const dataTable = document.getElementById('content-table-body');
+        if (!dataTable) return;
+        dataTable.innerHTML = '';
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            let total = 0;
+            let platforms = {};
+
+            Object.keys(data).forEach(key => {
+                const item = data[key];
+                total++;
+                platforms[item.platform] = (platforms[item.platform] || 0) + 1;
+
+                let row = `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4">
+                            <span class="font-semibold text-slate-900 block">${item.platform || '-'}</span>
+                            <span class="text-xs text-indigo-600 font-medium">${item.uploadTime || '-'}</span>
+                        </td>
+                        <td class="p-4">
+                            <span class="block text-slate-700">${item.segment || '-'}</span>
+                            <span class="text-xs text-slate-400">${item.persona || '-'}</span>
+                        </td>
+                        <td class="p-4">
+                            <span class="block text-slate-700 font-medium">${item.funnel || '-'}</span>
+                            <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md inline-block mt-1">${item.hook || '-'}</span>
+                        </td>
+                        <td class="p-4">
+                            <span class="block text-slate-700">${item.contentAngle || '-'}</span>
+                            <span class="text-xs text-slate-500 italic">${item.offer || '-'}</span>
+                        </td>
+                        <td class="p-4">
+                            <span class="block text-slate-700 font-medium">${item.usp || '-'}</span>
+                            <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md inline-block mt-1">${item.cta || '-'}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="editData('${key}', '${item.platform}', '${item.uploadTime}', '${item.segment}', '${item.consumerIntent}', '${item.funnel}', '${item.persona}', '${item.hook}', '${item.contentAngle}', '${item.offer}', '${item.usp}', '${item.cta}')" class="p-2 text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="deleteData('${key}')" class="p-2 text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                dataTable.innerHTML += row;
+            });
+
+            // Update statistik dashboard
+            const totalContentEl = document.getElementById('total-content');
+            if (totalContentEl) totalContentEl.innerText = total;
+            
+            let topPlatform = Object.keys(platforms).reduce((a, b) => platforms[a] > platforms[b] ? a : b, '-');
+            const topPlatformEl = document.getElementById('top-platform');
+            if (topPlatformEl) topPlatformEl.innerText = topPlatform;
+
+        } else {
+            dataTable.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Belum ada data konten. Silakan buat baru.</td></tr>`;
+            const totalContentEl = document.getElementById('total-content');
+            if (totalContentEl) totalContentEl.innerText = 0;
+            const topPlatformEl = document.getElementById('top-platform');
+            if (topPlatformEl) topPlatformEl.innerText = '-';
+        }
+    });
+
+    // 5. Fungsi Global untuk Simpan (Create & Update)
+    window.saveContent = function(e) {
+        if(e) e.preventDefault();
+        const id = document.getElementById('content-id').value || 'content_' + Date.now();
+        
+        const payload = {
+            platform: document.getElementById('platform').value,
+            uploadTime: document.getElementById('upload-time').value,
+            segment: document.getElementById('segment').value,
+            consumerIntent: document.getElementById('consumer-intent').value,
+            funnel: document.getElementById('funnel').value,
+            persona: document.getElementById('persona').value,
+            hook: document.getElementById('hook').value,
+            contentAngle: document.getElementById('content-angle').value,
+            offer: document.getElementById('offer').value,
+            usp: document.getElementById('usp').value,
+            cta: document.getElementById('cta').value
         };
 
-        let db;
-        let currentBrand = 'Nocasta';
-
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getDatabase(app);
-            document.getElementById('db-status').innerText = 'Connected';
-            document.getElementById('db-status').className = 'text-sm font-bold text-emerald-500';
-            loadData();
-        } catch (error) {
-            console.error("Firebase Init Error:", error);
-            document.getElementById('db-status').innerText = 'Error Config';
-            document.getElementById('db-status').className = 'text-sm font-bold text-rose-500';
-        }
-
-        // Fungsi Switch Tab Brand / Performance
-        window.switchTab = function(tabName) {
-            const secPlan = document.getElementById('section-plan');
-            const secPerf = document.getElementById('section-performance');
-            const btnAdd = document.getElementById('btn-add-content');
-            
-            const tabNocasta = document.getElementById('tab-nocasta');
-            const tabDermaga = document.getElementById('tab-dermagakopi');
-            const tabPerf = document.getElementById('tab-performance');
-
-            // Reset tab styles
-            [tabNocasta, tabDermaga, tabPerf].forEach(t => {
-                t.className = "px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900 text-sm font-medium flex items-center gap-1.5";
+        set(ref(db, 'contents/' + id), payload)
+            .then(() => {
+                if(typeof closeModal === 'function') closeModal();
+            })
+            .catch((error) => {
+                alert("Gagal menyimpan: " + error.message);
             });
+    }
 
-            if(tabName === 'Performance') {
-                secPlan.classList.add('hidden');
-                secPerf.classList.remove('hidden');
-                btnAdd.classList.add('hidden');
-                tabPerf.className = "px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm text-sm font-medium flex items-center gap-1.5";
-                loadPerformanceData();
-            } else {
-                secPerf.classList.add('hidden');
-                secPlan.classList.remove('hidden');
-                btnAdd.classList.remove('hidden');
-                currentBrand = tabName;
-                document.getElementById('active-brand-title').innerText = tabName === 'Nocasta' ? 'Nocasta' : 'Dermaga Kopi';
-                
-                if(tabName === 'Nocasta') {
-                    tabNocasta.className = "px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm text-sm font-medium";
-                } else {
-                    tabDermaga.className = "px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm text-sm font-medium";
-                }
-                loadData();
-            }
-        }
-
-        // Ambil Data Content Plan Berdasarkan Brand Aktif
-        function loadData() {
-            if(!db) return;
-            const dbRef = ref(db, `contents/${currentBrand}`);
-            onValue(dbRef, (snapshot) => {
-                const dataTable = document.getElementById('content-table-body');
-                dataTable.innerHTML = '';
-                
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    let total = 0;
-                    let activeCount = 0;
-                    let platforms = {};
-
-                    Object.keys(data).forEach(key => {
-                        const item = data[key];
-                        total++;
-                        if(item.statusKonten === 'On') activeCount++;
-                        platforms[item.platform] = (platforms[item.platform] || 0) + 1;
-
-                        let statusBadge = item.statusKonten === 'On' 
-                            ? '<span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[11px] font-bold">ON</span>' 
-                            : '<span class="bg-rose-50 text-rose-600 px-2 py-0.5 rounded text-[11px] font-bold">OFF</span>';
-
-                        let row = `
-                            <tr class="hover:bg-slate-50/80 transition">
-                                <td class="p-4">
-                                    <span class="font-semibold text-slate-900 block">${item.tanggal || '-'}</span>
-                                    <div class="mt-1">${statusBadge}</div>
-                                </td>
-                                <td class="p-4">
-                                    <span class="font-bold text-slate-800 block">${item.judul || '-'}</span>
-                                    <span class="text-xs text-indigo-600">Tema: ${item.tema || '-'}</span>
-                                </td>
-                                <td class="p-4">
-                                    <span class="font-semibold text-slate-900 block">${item.platform}</span>
-                                    <span class="text-xs text-slate-500">${item.uploadTime}</span>
-                                </td>
-                                <td class="p-4">
-                                    <p class="text-xs text-slate-600 max-w-xs truncate">${item.ringkasanAlur || '-'}</p>
-                                    <span class="text-[11px] text-amber-600 font-medium">KPI: ${item.kpi || '-'}</span>
-                                </td>
-                                <td class="p-4">
-                                    <span class="block text-slate-700 text-xs"><b>Funnel:</b> ${item.funnel}</span>
-                                    <span class="block text-slate-700 text-xs"><b>Hook:</b> ${item.hook}</span>
-                                    <span class="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded inline-block mt-1">USP: ${item.usp}</span>
-                                </td>
-                                <td class="p-4 text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button onclick="editData('${key}', '${item.tanggal}', '${item.statusKonten}', '${item.tema}', '${item.judul}', '${item.ringkasanAlur}', '${item.platform}', '${item.uploadTime}', '${item.segment}', '${item.consumerIntent}', '${item.kpi}', '${item.funnel}', '${item.persona}', '${item.hook}', '${item.contentAngle}', '${item.offer}', '${item.usp}', '${item.cta}')" class="p-2 text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-pen-to-square"></i></button>
-                                        <button onclick="deleteData('${key}')" class="p-2 text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                        dataTable.innerHTML += row;
-                    });
-
-                    document.getElementById('total-content').innerText = total;
-                    document.getElementById('total-active').innerText = activeCount;
-                    let topPlatform = Object.keys(platforms).reduce((a, b) => platforms[a] > platforms[b] ? a : b, '-');
-                    document.getElementById('top-platform').innerText = topPlatform;
-
-                } else {
-                    dataTable.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Belum ada data untuk brand ${currentBrand}.</td></tr>`;
-                    document.getElementById('total-content').innerText = 0;
-                    document.getElementById('total-active').innerText = 0;
-                    document.getElementById('top-platform').innerText = '-';
-                }
+    // 6. Fungsi Global untuk Hapus (Delete)
+    window.deleteData = function(id) {
+        if(confirm("Apakah Anda yakin ingin menghapus konten ini?")) {
+            remove(ref(db, 'contents/' + id)).catch((error) => {
+                alert("Gagal menghapus: " + error.message);
             });
         }
+    }
 
-        // Ambil Data Performance
-        function loadPerformanceData() {
-            if(!db) return;
-            const perfRef = ref(db, 'performance');
-            onValue(perfRef, (snapshot) => {
-                const perfTable = document.getElementById('performance-table-body');
-                perfTable.innerHTML = '';
-                if(snapshot.exists()) {
-                    const data = snapshot.val();
-                    Object.keys(data).forEach(key => {
-                        const item = data[key];
-                        perfTable.innerHTML += `
-                            <tr class="hover:bg-slate-50 transition text-center">
-                                <td class="p-4 text-left font-semibold text-slate-900">${item.title}</td>
-                                <td class="p-4 text-slate-600">${item.reach}</td>
-                                <td class="p-4 text-slate-600">${item.views}</td>
-                                <td class="p-4 text-slate-600">${item.impressions}</td>
-                                <td class="p-4 text-emerald-600 font-medium">${item.like}</td>
-                                <td class="p-4 text-emerald-600 font-medium">${item.comment}</td>
-                                <td class="p-4 text-emerald-600 font-medium">${item.share}</td>
-                                <td class="p-4 text-emerald-600 font-medium">${item.save}</td>
-                                <td class="p-4">
-                                    <button onclick="deletePerf('${key}')" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                } else {
-                    perfTable.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">Belum ada data performance tercatat.</td></tr>`;
-                }
-            });
-        }
+    // 7. Fungsi Global untuk Edit (Populate Form)
+    window.editData = function(id, platform, uploadTime, segment, consumerIntent, funnel, persona, hook, contentAngle, offer, usp, cta) {
+        document.getElementById('content-id').value = id;
+        document.getElementById('platform').value = platform;
+        document.getElementById('upload-time').value = uploadTime;
+        document.getElementById('segment').value = segment;
+        document.getElementById('consumer-intent').value = consumerIntent;
+        document.getElementById('funnel').value = funnel;
+        document.getElementById('persona').value = persona;
+        document.getElementById('hook').value = hook;
+        document.getElementById('content-angle').value = contentAngle;
+        document.getElementById('offer').value = offer;
+        document.getElementById('usp').value = usp;
+        document.getElementById('cta').value = cta;
 
-        // Simpan Content Plan
-        window.saveContent = function(e) {
-            e.preventDefault();
-            const id = document.getElementById('content-id').value || 'content_' + Date.now();
-            
-            const payload = {
-                tanggal: document.getElementById('tanggal').value,
-                statusKonten: document.getElementById('status-konten').value,
-                tema: document.getElementById('tema').value,
-                judul: document.getElementById('judul').value,
-                ringkasanAlur: document.getElementById('ringkasan-alur').value,
-                platform: document.getElementById('platform').value,
-                uploadTime: document.getElementById('upload-time').value,
-                segment: document.getElementById('segment').value,
-                consumerIntent: document.getElementById('consumer-intent').value,
-                kpi: document.getElementById('kpi').value,
-                funnel: document.getElementById('funnel').value,
-                persona: document.getElementById('persona').value,
-                hook: document.getElementById('hook').value,
-                contentAngle: document.getElementById('content-angle').value,
-                offer: document.getElementById('offer').value,
-                usp: document.getElementById('usp').value,
-                cta: document.getElementById('cta').value
-            };
-
-            set(ref(db, `contents/${currentBrand}/` + id), payload)
-                .then(() => closeModal())
-                .catch((error) => alert("Gagal menyimpan: " + error.message));
-        }
-
-        // Simpan Performance
-        window.savePerformance = function(e) {
-            e.preventDefault();
-            const id = 'perf_' + Date.now();
-            const payload = {
-                title: document.getElementById('perf-title').value,
-                reach: document.getElementById('perf-reach').value,
-                views: document.getElementById('perf-views').value,
-                impressions: document.getElementById('perf-impressions').value,
-                like: document.getElementById('perf-like').value,
-                comment: document.getElementById('perf-comment').value,
-                share: document.getElementById('perf-share').value,
-                save: document.getElementById('perf-save').value
-            };
-            set(ref(db, 'performance/' + id), payload)
-                .then(() => closePerfModal())
-                .catch((error) => alert("Gagal menyimpan: " + error.message));
-        }
-
-        window.deleteData = function(id) {
-            if(confirm("Hapus konten plan ini?")) {
-                remove(ref(db, `contents/${currentBrand}/` + id));
-            }
-        }
-
-        window.deletePerf = function(id) {
-            if(confirm("Hapus data performance ini?")) {
-                remove(ref(db, 'performance/' + id));
-            }
-        }
-
-        window.editData = function(id, tanggal, statusKonten, tema, judul, ringkasanAlur, platform, uploadTime, segment, consumerIntent, kpi, funnel, persona, hook, contentAngle, offer, usp, cta) {
-            document.getElementById('content-id').value = id;
-            document.getElementById('tanggal').value = tanggal;
-            document.getElementById('status-konten').value = statusKonten;
-            document.getElementById('tema').value = tema;
-            document.getElementById('judul').value = judul;
-            document.getElementById('ringkasan-alur').value = ringkasanAlur;
-            document.getElementById('platform').value = platform;
-            document.getElementById('upload-time').value = uploadTime;
-            document.getElementById('segment').value = segment;
-            document.getElementById('consumer-intent').value = consumerIntent;
-            document.getElementById('kpi').value = kpi;
-            document.getElementById('funnel').value = funnel;
-            document.getElementById('persona').value = persona;
-            document.getElementById('hook').value = hook;
-            document.getElementById('content-angle').value = contentAngle;
-            document.getElementById('offer').value = offer;
-            document.getElementById('usp').value = usp;
-            document.getElementById('cta').value = cta;
-
-            document.getElementById('modal-title').innerText = "Edit Konten Plan";
-            openModal();
-        }
-    </script>
-
-    <!-- Modal Controller Javascript -->
-    <script>
-        function openModal() {
-            document.getElementById('content-modal').classList.remove('hidden');
-        }
-        function closeModal() {
-            document.getElementById('content-modal').classList.add('hidden');
-            document.getElementById('content-form').reset();
-            document.getElementById('content-id').value = '';
-            document.getElementById('modal-title').innerText = "Tambah Konten Baru";
-        }
-        function openPerfModal() {
-            document.getElementById('perf-modal').classList.remove('hidden');
-        }
-        function closePerfModal() {
-            document.getElementById('perf-modal').classList.add('hidden');
-            document.getElementById('perf-form').reset();
-        }
-    </script>
+        const modalTitle = document.getElementById('modal-title');
+        if(modalTitle) modalTitle.innerText = "Edit Konten Plan";
+        if(typeof openModal === 'function') openModal();
+    }
+</script>
 </body>
 </html>
