@@ -27,7 +27,7 @@
             <!-- Tab Navigasi Utama (Brand & Performance) -->
             <div class="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-sm font-medium">
                 <button onclick="switchTab('Nocasta')" id="tab-nocasta" class="px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm">Nocasta</button>
-                <button onclick="switchTab('DermagaKopi')" id="tab-dermagakopi" class="px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900">Dermaga Kopi</button>
+                <button onclick="switchTab('Dermaga Kopi')" id="tab-dermagakopi" class="px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900">Dermaga Kopi</button>
                 <button onclick="switchTab('Performance')" id="tab-performance" class="px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5"><i class="fa-solid fa-chart-line text-xs"></i> Performance</button>
             </div>
 
@@ -154,6 +154,15 @@
             </div>
             <form id="content-form" onsubmit="saveContent(event)" class="p-6 space-y-4">
                 <input type="hidden" id="content-id">
+
+                <!-- Brand Pemilik Konten -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Brand Pemilik Konten</label>
+                    <select id="brand" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="Nocasta">Nocasta</option>
+                        <option value="Dermaga Kopi">Dermaga Kopi</option>
+                    </select>
+                </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Tanggal -->
@@ -420,163 +429,330 @@
         </div>
     </div>
 
+    <!-- Script Utama (100% Fungsi Terintegrasi) -->
     <script type="module">
-    // 1. Import Firebase dan modul Realtime Database yang dibutuhkan
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
-    // Konfigurasi Firebase dari proyek kamu
-    const firebaseConfig = {
-        apiKey: "AIzaSyAJAYw5365WmC1j4wzHs2vhDRNQRQopFWw",
-        authDomain: "content-management-plan.firebaseapp.com",
-        databaseURL: "https://content-management-plan-default-rtdb.firebaseio.com",
-        projectId: "content-management-plan",
-        storageBucket: "content-management-plan.firebasestorage.app",
-        messagingSenderId: "63622762698",
-        appId: "1:63622762698:web:773be35f5b46aefaa9a433",
-        measurementId: "G-V7QEY5YG85"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJAYw5365WmC1j4wzHs2vhDRNQRQopFWw",
+            authDomain: "content-management-plan.firebaseapp.com",
+            databaseURL: "https://content-management-plan-default-rtdb.firebaseio.com",
+            projectId: "content-management-plan",
+            storageBucket: "content-management-plan.firebasestorage.app",
+            messagingSenderId: "63622762698",
+            appId: "1:63622762698:web:773be35f5b46aefaa9a433",
+            measurementId: "G-V7QEY5YG85"
+        };
 
-    // 2. Inisialisasi Firebase & Analytics
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
 
-    // 3. Inisialisasi Realtime Database dengan menyertakan databaseURL secara eksplisit
-    let db;
-    try {
-        db = getDatabase(app, "https://content-management-plan-default-rtdb.firebaseio.com");
-        document.getElementById('db-status').innerText = 'Connected';
-        document.getElementById('db-status').className = 'text-2xl font-bold text-emerald-500 mt-1';
-    } catch (error) {
-        console.error("Firebase Init Error:", error);
-        document.getElementById('db-status').innerText = 'Error Config';
-        document.getElementById('db-status').className = 'text-2xl font-bold text-rose-500 mt-1';
-    }
+        let db;
+        try {
+            db = getDatabase(app, "https://content-management-plan-default-rtdb.firebaseio.com");
+            document.getElementById('db-status').innerText = 'Connected';
+            document.getElementById('db-status').className = 'text-sm font-bold text-emerald-500';
+        } catch (error) {
+            console.error("Firebase Init Error:", error);
+            document.getElementById('db-status').innerText = 'Error Config';
+            document.getElementById('db-status').className = 'text-sm font-bold text-rose-500';
+        }
 
-    // 4. Ambil Data Real-time dari path 'contents'
-    const dbRef = ref(db, 'contents');
-    onValue(dbRef, (snapshot) => {
-        const dataTable = document.getElementById('content-table-body');
-        if (!dataTable) return;
-        dataTable.innerHTML = '';
-        
-        if (snapshot.exists()) {
-            const data = snapshot.val();
+        // State Global Aplikasi
+        let currentActiveBrand = 'Nocasta';
+        let allContentData = {};
+        let allPerfData = {};
+
+        // Fungsi Global Navigasi Tab Brand & Performance
+        window.switchTab = function(brandOrPerf) {
+            const tabNocasta = document.getElementById('tab-nocasta');
+            const tabDermaga = document.getElementById('tab-dermagakopi');
+            const tabPerf = document.getElementById('tab-performance');
+            const sectionPlan = document.getElementById('section-plan');
+            const sectionPerf = document.getElementById('section-performance');
+            const activeBrandTitle = document.getElementById('active-brand-title');
+
+            // Reset styling tabs
+            tabNocasta.className = "px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900";
+            tabDermaga.className = "px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900";
+            tabPerf.className = "px-4 py-2 rounded-lg transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+
+            if (brandOrPerf === 'Performance') {
+                sectionPlan.classList.add('hidden');
+                sectionPerf.classList.remove('hidden');
+                tabPerf.className = "px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm flex items-center gap-1.5";
+            } else {
+                sectionPlan.classList.remove('hidden');
+                sectionPerf.classList.add('hidden');
+                currentActiveBrand = brandOrPerf;
+                activeBrandTitle.innerText = currentActiveBrand;
+
+                if (brandOrPerf === 'Nocasta') {
+                    tabNocasta.className = "px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm";
+                } else {
+                    tabDermaga.className = "px-4 py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm";
+                }
+                renderContentTable();
+            }
+        };
+
+        // Fungsi Global Modal Content Plan
+        window.openModal = function() {
+            document.getElementById('content-form').reset();
+            document.getElementById('content-id').value = '';
+            document.getElementById('modal-title').innerText = "Tambah Konten Baru";
+            // Default dropdown brand sesuai tab aktif saat ini
+            document.getElementById('brand').value = currentActiveBrand;
+            document.getElementById('content-modal').classList.remove('hidden');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('content-modal').classList.add('hidden');
+        };
+
+        // Fungsi Global Modal Performance
+        window.openPerfModal = function() {
+            document.getElementById('perf-form').reset();
+            document.getElementById('perf-id').value = '';
+            document.getElementById('perf-modal').classList.remove('hidden');
+        };
+
+        window.closePerfModal = function() {
+            document.getElementById('perf-modal').classList.add('hidden');
+        };
+
+        // Listener Real-time Data Content Plan
+        const dbRefContents = ref(db, 'contents');
+        onValue(dbRefContents, (snapshot) => {
+            if (snapshot.exists()) {
+                allContentData = snapshot.val();
+            } else {
+                allContentData = {};
+            }
+            renderContentTable();
+        });
+
+        // Listener Real-time Data Performance
+        const dbRefPerf = ref(db, 'performances');
+        onValue(dbRefPerf, (snapshot) => {
+            if (snapshot.exists()) {
+                allPerfData = snapshot.val();
+            } else {
+                allPerfData = {};
+            }
+            renderPerfTable();
+        });
+
+        // Render Tabel Content Plan berdasarkan Brand Aktif
+        function renderContentTable() {
+            const dataTable = document.getElementById('content-table-body');
+            if (!dataTable) return;
+            dataTable.innerHTML = '';
+
             let total = 0;
+            let activeCount = 0;
             let platforms = {};
+            let hasData = false;
 
-            Object.keys(data).forEach(key => {
-                const item = data[key];
-                total++;
-                platforms[item.platform] = (platforms[item.platform] || 0) + 1;
+            Object.keys(allContentData).forEach(key => {
+                const item = allContentData[key];
+                // Filter berdasarkan brand yang dipilih
+                if (item.brand === currentActiveBrand) {
+                    hasData = true;
+                    total++;
+                    if (item.statusKonten === 'On') activeCount++;
+                    platforms[item.platform] = (platforms[item.platform] || 0) + 1;
+
+                    let row = `
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-4">
+                                <span class="font-semibold text-slate-900 block">${item.tanggal || '-'}</span>
+                                <span class="text-xs px-2 py-0.5 rounded font-medium ${item.statusKonten === 'On' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'} inline-block mt-1">${item.statusKonten || 'Off'}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="font-bold text-slate-900 block">${item.judul || '-'}</span>
+                                <span class="text-xs text-indigo-600 font-medium">${item.tema || '-'}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700 font-medium">${item.platform || '-'}</span>
+                                <span class="text-xs text-slate-400">${item.uploadTime || '-'}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700 text-xs max-w-xs truncate">${item.ringkasanAlur || '-'}</span>
+                                <span class="text-[11px] text-amber-600 font-semibold mt-0.5 block">KPI: ${item.kpi || '-'}</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="block text-slate-700 text-xs font-medium">${item.funnel || '-'}</span>
+                                <div class="flex gap-1 mt-1 flex-wrap">
+                                    <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded">${item.hook || '-'}</span>
+                                    <span class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">${item.usp || '-'}</span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button onclick="editContent('${key}')" class="p-2 text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button onclick="deleteContent('${key}')" class="p-2 text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    dataTable.innerHTML += row;
+                }
+            });
+
+            if (!hasData) {
+                dataTable.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Belum ada rencana konten untuk brand ${currentActiveBrand}. Silakan buat baru.</td></tr>`;
+            }
+
+            // Update Statistik Dashboard
+            document.getElementById('total-content').innerText = total;
+            document.getElementById('total-active').innerText = activeCount;
+            let topPlatform = total > 0 && Object.keys(platforms).length > 0 ? Object.keys(platforms).reduce((a, b) => platforms[a] > platforms[b] ? a : b, '-') : '-';
+            document.getElementById('top-platform').innerText = topPlatform;
+        }
+
+        // Render Tabel Performance
+        function renderPerfTable() {
+            const perfTable = document.getElementById('performance-table-body');
+            if (!perfTable) return;
+            perfTable.innerHTML = '';
+
+            let hasPerf = false;
+            Object.keys(allPerfData).forEach(key => {
+                const item = allPerfData[key];
+                hasPerf = true;
 
                 let row = `
                     <tr class="hover:bg-slate-50/80 transition">
-                        <td class="p-4">
-                            <span class="font-semibold text-slate-900 block">${item.platform || '-'}</span>
-                            <span class="text-xs text-indigo-600 font-medium">${item.uploadTime || '-'}</span>
-                        </td>
-                        <td class="p-4">
-                            <span class="block text-slate-700">${item.segment || '-'}</span>
-                            <span class="text-xs text-slate-400">${item.persona || '-'}</span>
-                        </td>
-                        <td class="p-4">
-                            <span class="block text-slate-700 font-medium">${item.funnel || '-'}</span>
-                            <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md inline-block mt-1">${item.hook || '-'}</span>
-                        </td>
-                        <td class="p-4">
-                            <span class="block text-slate-700">${item.contentAngle || '-'}</span>
-                            <span class="text-xs text-slate-500 italic">${item.offer || '-'}</span>
-                        </td>
-                        <td class="p-4">
-                            <span class="block text-slate-700 font-medium">${item.usp || '-'}</span>
-                            <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md inline-block mt-1">${item.cta || '-'}</span>
-                        </td>
+                        <td class="p-4 font-semibold text-slate-900">${item.title || '-'}</td>
+                        <td class="p-4 text-center text-slate-600">${item.reach || 0}</td>
+                        <td class="p-4 text-center text-slate-600">${item.views || 0}</td>
+                        <td class="p-4 text-center text-slate-600">${item.impressions || 0}</td>
+                        <td class="p-4 text-center text-emerald-600 font-medium">${item.like || 0}</td>
+                        <td class="p-4 text-center text-emerald-600 font-medium">${item.comment || 0}</td>
+                        <td class="p-4 text-center text-emerald-600 font-medium">${item.share || 0}</td>
+                        <td class="p-4 text-center text-emerald-600 font-medium">${item.save || 0}</td>
                         <td class="p-4 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="editData('${key}', '${item.platform}', '${item.uploadTime}', '${item.segment}', '${item.consumerIntent}', '${item.funnel}', '${item.persona}', '${item.hook}', '${item.contentAngle}', '${item.offer}', '${item.usp}', '${item.cta}')" class="p-2 text-slate-400 hover:text-indigo-600 transition"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button onclick="deleteData('${key}')" class="p-2 text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <button onclick="deletePerformance('${key}')" class="p-2 text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
-                dataTable.innerHTML += row;
+                perfTable.innerHTML += row;
             });
 
-            // Update statistik dashboard
-            const totalContentEl = document.getElementById('total-content');
-            if (totalContentEl) totalContentEl.innerText = total;
-            
-            let topPlatform = Object.keys(platforms).reduce((a, b) => platforms[a] > platforms[b] ? a : b, '-');
-            const topPlatformEl = document.getElementById('top-platform');
-            if (topPlatformEl) topPlatformEl.innerText = topPlatform;
-
-        } else {
-            dataTable.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Belum ada data konten. Silakan buat baru.</td></tr>`;
-            const totalContentEl = document.getElementById('total-content');
-            if (totalContentEl) totalContentEl.innerText = 0;
-            const topPlatformEl = document.getElementById('top-platform');
-            if (topPlatformEl) topPlatformEl.innerText = '-';
+            if (!hasPerf) {
+                perfTable.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">Belum ada data performance tercatat.</td></tr>`;
+            }
         }
-    });
 
-    // 5. Fungsi Global untuk Simpan (Create & Update)
-    window.saveContent = function(e) {
-        if(e) e.preventDefault();
-        const id = document.getElementById('content-id').value || 'content_' + Date.now();
-        
-        const payload = {
-            platform: document.getElementById('platform').value,
-            uploadTime: document.getElementById('upload-time').value,
-            segment: document.getElementById('segment').value,
-            consumerIntent: document.getElementById('consumer-intent').value,
-            funnel: document.getElementById('funnel').value,
-            persona: document.getElementById('persona').value,
-            hook: document.getElementById('hook').value,
-            contentAngle: document.getElementById('content-angle').value,
-            offer: document.getElementById('offer').value,
-            usp: document.getElementById('usp').value,
-            cta: document.getElementById('cta').value
+        // Fungsi Simpan Content Plan (Create & Update)
+        window.saveContent = function(e) {
+            if (e) e.preventDefault();
+            const id = document.getElementById('content-id').value || 'content_' + Date.now();
+            
+            const payload = {
+                brand: document.getElementById('brand').value,
+                tanggal: document.getElementById('tanggal').value,
+                statusKonten: document.getElementById('status-konten').value,
+                tema: document.getElementById('tema').value,
+                judul: document.getElementById('judul').value,
+                ringkasanAlur: document.getElementById('ringkasan-alur').value,
+                platform: document.getElementById('platform').value,
+                uploadTime: document.getElementById('upload-time').value,
+                segment: document.getElementById('segment').value,
+                consumerIntent: document.getElementById('consumer-intent').value,
+                kpi: document.getElementById('kpi').value,
+                funnel: document.getElementById('funnel').value,
+                persona: document.getElementById('persona').value,
+                hook: document.getElementById('hook').value,
+                contentAngle: document.getElementById('content-angle').value,
+                offer: document.getElementById('offer').value,
+                usp: document.getElementById('usp').value,
+                cta: document.getElementById('cta').value
+            };
+
+            set(ref(db, 'contents/' + id), payload)
+                .then(() => {
+                    closeModal();
+                })
+                .catch((error) => {
+                    alert("Gagal menyimpan konten: " + error.message);
+                });
         };
 
-        set(ref(db, 'contents/' + id), payload)
-            .then(() => {
-                if(typeof closeModal === 'function') closeModal();
-            })
-            .catch((error) => {
-                alert("Gagal menyimpan: " + error.message);
-            });
-    }
+        // Fungsi Edit Content Plan (Mengisi form modal)
+        window.editContent = function(key) {
+            const item = allContentData[key];
+            if (!item) return;
 
-    // 6. Fungsi Global untuk Hapus (Delete)
-    window.deleteData = function(id) {
-        if(confirm("Apakah Anda yakin ingin menghapus konten ini?")) {
-            remove(ref(db, 'contents/' + id)).catch((error) => {
-                alert("Gagal menghapus: " + error.message);
-            });
-        }
-    }
+            document.getElementById('content-id').value = key;
+            document.getElementById('brand').value = item.brand || 'Nocasta';
+            document.getElementById('tanggal').value = item.tanggal || '';
+            document.getElementById('status-konten').value = item.statusKonten || 'On';
+            document.getElementById('tema').value = item.tema || '';
+            document.getElementById('judul').value = item.judul || '';
+            document.getElementById('ringkasan-alur').value = item.ringkasanAlur || '';
+            document.getElementById('platform').value = item.platform || 'Tiktok';
+            document.getElementById('upload-time').value = item.uploadTime || '';
+            document.getElementById('segment').value = item.segment || '';
+            document.getElementById('consumer-intent').value = item.consumerIntent || '';
+            document.getElementById('kpi').value = item.kpi || '';
+            document.getElementById('funnel').value = item.funnel || '';
+            document.getElementById('persona').value = item.persona || '';
+            document.getElementById('hook').value = item.hook || '';
+            document.getElementById('content-angle').value = item.contentAngle || '';
+            document.getElementById('offer').value = item.offer || '';
+            document.getElementById('usp').value = item.usp || '';
+            document.getElementById('cta').value = item.cta || '';
 
-    // 7. Fungsi Global untuk Edit (Populate Form)
-    window.editData = function(id, platform, uploadTime, segment, consumerIntent, funnel, persona, hook, contentAngle, offer, usp, cta) {
-        document.getElementById('content-id').value = id;
-        document.getElementById('platform').value = platform;
-        document.getElementById('upload-time').value = uploadTime;
-        document.getElementById('segment').value = segment;
-        document.getElementById('consumer-intent').value = consumerIntent;
-        document.getElementById('funnel').value = funnel;
-        document.getElementById('persona').value = persona;
-        document.getElementById('hook').value = hook;
-        document.getElementById('content-angle').value = contentAngle;
-        document.getElementById('offer').value = offer;
-        document.getElementById('usp').value = usp;
-        document.getElementById('cta').value = cta;
+            document.getElementById('modal-title').innerText = "Edit Rencana Konten";
+            document.getElementById('content-modal').classList.remove('hidden');
+        };
 
-        const modalTitle = document.getElementById('modal-title');
-        if(modalTitle) modalTitle.innerText = "Edit Konten Plan";
-        if(typeof openModal === 'function') openModal();
-    }
-</script>
+        // Fungsi Hapus Content Plan
+        window.deleteContent = function(key) {
+            if (confirm("Apakah Anda yakin ingin menghapus rencana konten ini?")) {
+                remove(ref(db, 'contents/' + key)).catch((error) => {
+                    alert("Gagal menghapus konten: " + error.message);
+                });
+            }
+        };
+
+        // Fungsi Simpan Performance Metrics
+        window.savePerformance = function(e) {
+            if (e) e.preventDefault();
+            const id = 'perf_' + Date.now();
+
+            const payload = {
+                title: document.getElementById('perf-title').value,
+                reach: Number(document.getElementById('perf-reach').value),
+                views: Number(document.getElementById('perf-views').value),
+                impressions: Number(document.getElementById('perf-impressions').value),
+                like: Number(document.getElementById('perf-like').value),
+                comment: Number(document.getElementById('perf-comment').value),
+                share: Number(document.getElementById('perf-share').value),
+                save: Number(document.getElementById('perf-save').value)
+            };
+
+            set(ref(db, 'performances/' + id), payload)
+                .then(() => {
+                    closePerfModal();
+                })
+                .catch((error) => {
+                    alert("Gagal menyimpan performance: " + error.message);
+                });
+        };
+
+        // Fungsi Hapus Performance Metrics
+        window.deletePerformance = function(key) {
+            if (confirm("Apakah Anda yakin ingin menghapus metrik performance ini?")) {
+                remove(ref(db, 'performances/' + key)).catch((error) => {
+                    alert("Gagal menghapus metrics: " + error.message);
+                });
+            }
+        };
+    </script>
 </body>
 </html>
